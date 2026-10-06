@@ -1,7 +1,7 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { composeApp } from './app/composition'
-import { DashboardPage } from './app/pages/DashboardPage'
+import { DashboardPage } from './modules/dashboard/ui/DashboardPage'
 import './styles.css'
 
 const app = composeApp()

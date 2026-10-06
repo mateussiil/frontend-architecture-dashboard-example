@@ -4,7 +4,7 @@ export interface DashboardProps {
 }
 
 // O Dashboard não conhece os widgets: cada um é um bounded context.
-// Quem junta os dois na mesma tela é o ponto de entrada (app/pages).
+// Quem junta os dois na mesma tela é o ponto de entrada (ui/DashboardPage).
 export class Dashboard {
   private constructor(private readonly props: DashboardProps) {}
 

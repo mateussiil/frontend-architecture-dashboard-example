@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react'
-import type { GetDashboardUseCase } from '../../modules/dashboard/application/GetDashboardUseCase'
-import type { Dashboard } from '../../modules/dashboard/domain/Dashboard'
-import { DashboardHeader } from '../../modules/dashboard/ui/DashboardHeader'
-import type { ListDashboardWidgetsUseCase } from '../../modules/widget/application/ListDashboardWidgetsUseCase'
-import type { ResizeWidgetUseCase } from '../../modules/widget/application/ResizeWidgetUseCase'
-import type { Widget, WidgetSize } from '../../modules/widget/domain/Widget'
-import { WidgetGrid } from '../../modules/widget/ui/WidgetGrid'
+import type { GetDashboardUseCase } from '../application/GetDashboardUseCase'
+import type { Dashboard } from '../domain/Dashboard'
+import { DashboardHeader } from './DashboardHeader'
+import type { ListDashboardWidgetsUseCase } from '../../widget/application/ListDashboardWidgetsUseCase'
+import type { ResizeWidgetUseCase } from '../../widget/application/ResizeWidgetUseCase'
+import type { Widget, WidgetSize } from '../../widget/domain/Widget'
+import { WidgetGrid } from '../../widget/ui/WidgetGrid'
 
 interface Props {
   dashboardId: string
@@ -15,8 +15,8 @@ interface Props {
   resizeWidget: ResizeWidgetUseCase
 }
 
-// Ponto de entrada da tela. A página é uma consequência da interface:
-// é aqui, e não dentro dos módulos, que dashboard e widget se encontram.
+// Ponto de entrada da tela. A tela do dashboard mostra os widgets dele,
+// então o módulo dashboard usa o módulo widget (nunca o contrário).
 // Ela coordena o fluxo chamando os casos de uso e entrega a cada
 // componente de apresentação exatamente o que ele precisa.
 export function DashboardPage({ dashboardId, shareBaseUrl, getDashboard, listWidgets, resizeWidget }: Props) {

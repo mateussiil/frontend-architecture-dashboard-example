@@ -588,8 +588,9 @@ Mas:
 Aplicação mínima que exemplifica a proposta acima: um dashboard de vendas com widgets
 redimensionáveis. Pequeno de propósito, para que a estrutura apareça mais do que o produto.
 
-Tem dois módulos, `dashboard/` e `widget/`, cada um com suas próprias camadas. **Um módulo não
-importa o outro.** Eles só se encontram na página, que é uma consequência da interface.
+Tem dois módulos, `dashboard/` e `widget/`, cada um com suas próprias camadas. A dependência
+entre eles tem **um sentido só**: a tela do dashboard (`dashboard/ui/DashboardPage.tsx`) usa os
+casos de uso e componentes do `widget`, mas o `widget` não sabe que o `dashboard` existe.
 
 ## Rodando
 
@@ -609,9 +610,7 @@ composição.
 ```text
 src/
 ├── app/
-│   ├── composition.ts                  # ponto de composição: monta as dependências (DI sem container)
-│   └── pages/
-│       └── DashboardPage.tsx           # ponto de entrada da tela: junta dashboard + widget
+│   └── composition.ts                  # ponto de composição: monta as dependências (DI sem container)
 ├── main.tsx
 └── modules/
     ├── dashboard/                      # bounded context: o dashboard
@@ -620,7 +619,9 @@ src/
     │   │   ├── DashboardRepository.ts
     │   │   └── GetDashboardUseCase.ts
     │   ├── infrastructure/             # HttpDashboardRepository, InMemoryDashboardRepository
-    │   ├── ui/DashboardHeader.tsx
+    │   ├── ui/
+    │   │   ├── DashboardPage.tsx       # ponto de entrada da tela: usa dashboard + widget
+    │   │   └── DashboardHeader.tsx
     │   └── testing/                    # FakeDashboardRepository, fixtures
     └── widget/                         # bounded context: os widgets
         ├── domain/Widget.ts            # tamanhos válidos por tipo, CSV, visualização
@@ -633,8 +634,9 @@ src/
         └── testing/                    # FakeWidgetRepository, fixtures
 ```
 
-O `Widget` guarda só o `dashboardId` a que pertence. O `Dashboard` não conhece widgets. Assim cada
-módulo evolui sozinho, e mover widgets para outra tela não exige mexer no módulo `dashboard`.
+O `Widget` guarda só o `dashboardId` a que pertence, e a entidade `Dashboard` não conhece widgets.
+Quem junta os dois é a tela `DashboardPage`, na camada `ui` do módulo `dashboard`. Assim o
+`widget` pode ser usado em outra tela sem mexer no módulo `dashboard`.
 
 ## Onde cada coisa mora
 
@@ -644,7 +646,7 @@ módulo evolui sozinho, e mover widgets para outra tela não exige mexer no mód
 | Como é a URL de compartilhamento?             | `dashboard/domain/Dashboard.ts`                  |
 | O que acontece quando redimensiono um widget? | `widget/application/ResizeWidgetUseCase.ts`      |
 | Como um widget é salvo?                       | `widget/infrastructure/*WidgetRepository.ts`     |
-| Como a tela começa?                           | `app/pages/DashboardPage.tsx`                    |
+| Como a tela começa?                           | `dashboard/ui/DashboardPage.tsx`                 |
 | Como um widget aparece?                       | `widget/ui/WidgetCard.tsx`                       |
 | Qual implementação está sendo usada?          | `app/composition.ts`                             |
 

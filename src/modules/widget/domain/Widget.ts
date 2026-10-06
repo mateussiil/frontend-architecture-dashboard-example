@@ -33,6 +33,7 @@ export class InvalidWidgetSizeError extends Error {
 
 export interface WidgetProps {
   id: string
+  dashboardId: string
   title: string
   type: WidgetType
   size: WidgetSize
@@ -50,6 +51,10 @@ export class Widget {
 
   id(): string {
     return this.props.id
+  }
+
+  dashboardId(): string {
+    return this.props.dashboardId
   }
 
   title(): string {

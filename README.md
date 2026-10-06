@@ -587,58 +587,66 @@ Mas:
 
 Aplicação mínima que exemplifica a proposta acima: um dashboard de vendas com widgets
 redimensionáveis. Pequeno de propósito, para que a estrutura apareça mais do que o produto.
-Tem um único módulo (`dashboard/`), mas cada camada descrita no texto está presente.
+
+Tem dois módulos, `dashboard/` e `widget/`, cada um com suas próprias camadas. **Um módulo não
+importa o outro.** Eles só se encontram na página, que é uma consequência da interface.
 
 ## Rodando
 
 ```bash
 npm install
 npm run dev        # http://localhost:5173
-npm test           # Vitest: domínio, casos de uso, infraestrutura e componentes
+npm test           # Vitest: domínio, casos de uso, infraestrutura, componentes e página
 npm run test:e2e   # Playwright: fluxo real no browser
 ```
 
-Por padrão os dados ficam no `localStorage` (não precisa de backend). Para usar uma API HTTP,
-defina `VITE_API_URL` — nenhuma linha de domínio, aplicação ou UI muda, só o ponto de composição.
+Por padrão os dados ficam em memória e no `localStorage` (não precisa de backend). Para usar uma
+API HTTP, defina `VITE_API_URL` — nenhuma linha de domínio, aplicação ou UI muda, só o ponto de
+composição.
 
 ## Estrutura
 
 ```text
 src/
 ├── app/
-│   └── composition.ts            # ponto de composição: monta as dependências (DI sem container)
-├── main.tsx                      # entrada do React
+│   ├── composition.ts                  # ponto de composição: monta as dependências (DI sem container)
+│   └── pages/
+│       └── DashboardPage.tsx           # ponto de entrada da tela: junta dashboard + widget
+├── main.tsx
 └── modules/
-    └── dashboard/                # um módulo = um bounded context
-        ├── domain/               # entidades e regras de negócio (sem React, sem HTTP)
-        │   ├── Dashboard.ts
-        │   └── Widget.ts
-        ├── application/          # casos de uso + contratos que eles precisam
-        │   ├── DashboardRepository.ts
-        │   ├── GetDashboardUseCase.ts
+    ├── dashboard/                      # bounded context: o dashboard
+    │   ├── domain/Dashboard.ts         # nome, URL de compartilhamento
+    │   ├── application/
+    │   │   ├── DashboardRepository.ts
+    │   │   └── GetDashboardUseCase.ts
+    │   ├── infrastructure/             # HttpDashboardRepository, InMemoryDashboardRepository
+    │   ├── ui/DashboardHeader.tsx
+    │   └── testing/                    # FakeDashboardRepository, fixtures
+    └── widget/                         # bounded context: os widgets
+        ├── domain/Widget.ts            # tamanhos válidos por tipo, CSV, visualização
+        ├── application/
+        │   ├── WidgetRepository.ts
+        │   ├── ListDashboardWidgetsUseCase.ts
         │   └── ResizeWidgetUseCase.ts
-        ├── infrastructure/       # conversa com o mundo externo
-        │   ├── DashboardMapper.ts
-        │   ├── HttpDashboardRepository.ts
-        │   └── LocalStorageDashboardRepository.ts
-        ├── ui/                   # React: apresentação e interação
-        │   ├── DashboardPage.tsx # ponto de entrada da tela
-        │   ├── DashboardView.tsx # componente de apresentação
-        │   └── WidgetCard.tsx
-        └── testing/              # FakeDashboardRepository e fixtures
+        ├── infrastructure/             # HttpWidgetRepository, LocalStorageWidgetRepository
+        ├── ui/                         # WidgetGrid, WidgetCard
+        └── testing/                    # FakeWidgetRepository, fixtures
 ```
+
+O `Widget` guarda só o `dashboardId` a que pertence. O `Dashboard` não conhece widgets. Assim cada
+módulo evolui sozinho, e mover widgets para outra tela não exige mexer no módulo `dashboard`.
 
 ## Onde cada coisa mora
 
-| Pergunta                                      | Onde olhar                              |
-| --------------------------------------------- | --------------------------------------- |
-| Quais tamanhos um widget KPI pode ter?        | `domain/Widget.ts`                      |
-| Como é a URL de compartilhamento?             | `domain/Dashboard.ts`                   |
-| O que acontece quando redimensiono um widget? | `application/ResizeWidgetUseCase.ts`    |
-| Como o dashboard é salvo?                     | `infrastructure/*Repository.ts`         |
-| Como a tela começa?                           | `ui/DashboardPage.tsx`                  |
-| Como um widget aparece?                       | `ui/WidgetCard.tsx`                     |
-| Qual implementação está sendo usada?          | `app/composition.ts`                    |
+| Pergunta                                      | Onde olhar                                       |
+| --------------------------------------------- | ------------------------------------------------ |
+| Quais tamanhos um widget KPI pode ter?        | `widget/domain/Widget.ts`                        |
+| Como é a URL de compartilhamento?             | `dashboard/domain/Dashboard.ts`                  |
+| O que acontece quando redimensiono um widget? | `widget/application/ResizeWidgetUseCase.ts`      |
+| Como um widget é salvo?                       | `widget/infrastructure/*WidgetRepository.ts`     |
+| Como a tela começa?                           | `app/pages/DashboardPage.tsx`                    |
+| Como um widget aparece?                       | `widget/ui/WidgetCard.tsx`                       |
+| Qual implementação está sendo usada?          | `app/composition.ts`                             |
 
 ## Um fluxo completo: redimensionar um widget
 
@@ -651,9 +659,9 @@ DashboardPage         → chama o caso de uso e atualiza o estado
    ↓
 ResizeWidgetUseCase   → busca, aplica a regra, persiste, devolve
    ↓
-Dashboard / Widget    → decidem se o tamanho é válido
+Widget                → decide se o tamanho é válido
    ↓
-DashboardRepository   → abstração
+WidgetRepository      → abstração
    ↓
 LocalStorage / HTTP   → infraestrutura
 ```
@@ -672,10 +680,11 @@ em vez de
 
 ## Testes por camada
 
-| Camada         | Ferramenta                       | Precisa de browser/HTTP? |
-| -------------- | -------------------------------- | ------------------------ |
-| Domain         | Vitest                           | Não                      |
-| Application    | Vitest + `FakeDashboardRepository` | Não                    |
-| Infrastructure | Vitest (jsdom `localStorage`)    | Não                      |
-| UI             | Vitest + Testing Library com dados falsos | Não             |
-| Fluxo real     | Playwright                       | Sim                      |
+| O que                    | Ferramenta                                     | Precisa de browser/HTTP? |
+| ------------------------ | ---------------------------------------------- | ------------------------ |
+| Domain                   | Vitest                                         | Não                      |
+| Application              | Vitest + repositórios falsos                   | Não                      |
+| Infrastructure           | Vitest (jsdom `localStorage`)                  | Não                      |
+| Componentes              | Vitest + Testing Library com dados falsos      | Não                      |
+| Ponto de entrada (página)| Vitest + casos de uso reais + repositórios falsos | Não                   |
+| Fluxo real               | Playwright                                     | Sim                      |
